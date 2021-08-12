@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<head>
+    <title>Basic Parallel coordinates chart with color effect</title>
+</head>
+<meta charset="utf-8">
+
+<script src="https://d3js.org/d3.v4.js"></script>
+<script src="./data.csv"></script>
+
+<div id="my_dataviz"></div>
+<body>
+    <script>
+
+    var margin = {top: 30, right: 50, bottom: 10, left: 50},
+      width = 500 - margin.left - margin.right,
+      height = 600 - margin.top - margin.bottom;
+    
+    var svg = d3.select("#my_dataviz")
+    .append("svg")
+      .attr("width", width + margin.left + margin.right)
+      .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+      .attr("transform",
+            "translate(" + margin.left + "," + margin.top + ")");
+      
+      
+
+    d3.csv("./data.csv", function(data) {
+    
+      var color = d3.scaleOrdinal()
+      .domain(["good", "bad", "truncated"])
+      .range([ "#00ff00", "#ff0000", "#0000ff"])
+
+      dimensions = ["Feature_0","Feature_1", "Feature_2"]
+      
+  var y = {}
+  for (i in dimensions) {
+    name = dimensions[i]
+    y[name] = d3.scaleLinear()
+      .domain( [0,1] )
+      .range([height, 0])
+  }
+
+  x = d3.scalePoint()
+    .range([0, width])
+    .domain(dimensions);
+
+  var highlight = function(d){
+    if(d.Feature_0 <= .94)
+    {
+      if(d.Feature_1 < .5)
+      {d.Color = "good"}
+      else if(d.Feature_1 >= .5)
+      {d.Color = "bad"}
+    }
+    else if(d.Feature_0 > .95)
+    {
+      if(d.Feature_2 > .5)
+      {d.Color = "good"}
+      else if(d.Feature_2 <= .5)
+      {d.Color = "bad"}
+    }
+    selected_color = d.Color
+
+    d3.selectAll(".line")
+      .transition().duration(200)
+      .style("stroke", "lightgrey")
+      .style("opacity", "0.2")
+    d3.selectAll("." + selected_color)
+      .transition().duration(200)
+      .style("stroke", color(selected_color))
+      .style("opacity", "1")
+  }
+
+  var doNotHighlight = function(d){
+    if(d.Feature_0 <= .94)
+    {
+      if(d.Feature_1 < .5)
+      {d.Color = "good"}
+      else if(d.Feature_1 >= .5)
+      {d.Color = "bad"}
+    }
+    else if(d.Feature_0 > .95)
+    {
+      if(d.Feature_2 > .5)
+      {d.Color = "good"}
+      else if(d.Feature_2 <= .5)
+      {d.Color = "bad"}
+    }
+    d3.selectAll(".line")
+      .transition().duration(200).delay(1000)
+      .style("stroke", function(d){ return( color(d.Color))} )
+      .style("opacity", "1")
+  }
+
+  function path(d) {
+      return d3.line()(dimensions.map(function(p) { return [x(p), y[p](d[p])]; }));
+  }
+
+  svg
+    .selectAll("myPath")
+    .data(data)
+    .enter()
+    .append("path")
+      .attr("class", function (d) { return "line " + d.Color } )
+      .attr("d",  path)
+      .style("fill", "none" )
+      .style("stroke", function(d){ return( color(d.Color))} )
+      .style("opacity", 0.5)
+      .on("mouseover", highlight)
+      .on("mouseleave", doNotHighlight )
+
+  svg.selectAll("myAxis")
+    .data(dimensions).enter()
+    .append("g")
+    .attr("class", "axis")
+    .attr("transform", function(d) { return "translate(" + x(d) + ")"; })
+    .each(function(d) { d3.select(this).call(d3.axisLeft().ticks(20).scale(y[d])); })
+    .append("text")
+      .style("text-anchor", "middle")
+      .attr("y", -9)
+      .text(function(d) { return d; })
+      .style("fill", "black")
+
+})
+
+
+</script>
+</body>
